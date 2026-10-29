@@ -6,7 +6,7 @@
 
     lich-src = {
       # GitHub release archives omit Gemfile.lock via upstream's export-ignore.
-      url = "git+https://github.com/elanthia-online/lich-5?rev=80e6b366cd865e80afa112ae10468cf45e769ed7&shallow=1";
+      url = "git+https://github.com/elanthia-online/lich-5?ref=refs/tags/v5.23.0&shallow=1";
       flake = false;
     };
   };
@@ -17,7 +17,13 @@
     ...
   }: let
     system = "aarch64-darwin";
-    pkgs = nixpkgs.legacyPackages.${system};
+    pkgs = let
+      packages = nixpkgs.legacyPackages.${system};
+    in
+      assert packages.lib.assertMsg
+        (toString packages.ruby_4_0.version == "4.0.9")
+        "lichnix requires Ruby 4.0.9; locked nixpkgs provides ${packages.ruby_4_0.version}";
+      packages;
     toolchain = import ./nix/toolchain.nix {inherit pkgs;};
     lichBundix = pkgs.callPackage ./nix/bundix.nix {};
 

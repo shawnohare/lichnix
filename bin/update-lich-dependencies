@@ -4,7 +4,7 @@ set -euo pipefail
 # First edit inputs.lich-src.url in flake.nix to the desired Lich release tag.
 # This helper refreshes that input's lock, regenerates Nix gem metadata from
 # upstream's Gemfile.lock, and verifies the packages. It does not switch the
-# writable checkout used by Saga; use sync-lich-checkout separately.
+# writable checkout used by Saga.
 if [[ ${1:-} == --help || ${1:-} == -h ]]; then
   echo "Usage: $0"
   echo "After editing Lich's tag in flake.nix, refresh and verify its dependencies."
@@ -19,6 +19,23 @@ cd "$PROJECT_ROOT"
 
 # Update only Lich, leaving the pinned Ruby/native toolchain unchanged.
 nix flake update lich-src
-"$PROJECT_ROOT/bin/update-gems"
+
+# Regenerate metadata from the locked source, independently of the user's
+# writable Lich checkout. Gem versions follow upstream's lockfile.
+lich_source=$(nix eval --impure --raw --expr \
+  '(builtins.getFlake (toString ./.)).inputs.lich-src.outPath')
+nix develop .#gem-tools --command bundix \
+  --gemfile="$lich_source/Gemfile" \
+  --lockfile="$lich_source/Gemfile.lock" \
+  --gemset="$PROJECT_ROOT/nix/gems/gemset.nix"
+
+# Build the launcher, keeping result available for Saga. Verify development
+# gems without replacing result or creating a second result symlink.
+nix build .#ruby-lich
+nix build --no-link .#lich-development-gems
+# Verify upstream gemset consistency and launcher behavior, including native
+# gems with an empty home and stale Bundler settings.
+nix flake check
+
 echo "Review and commit flake.nix, flake.lock, and changed files in nix/gems/."
-echo "Then run bin/sync-lich-checkout and verify Lich/Saga manually."
+echo "Rebuild or upgrade the packaged installation, then verify Lich/Saga manually."

@@ -3,16 +3,16 @@
     "lich-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1791493678,
-        "narHash": "sha256-pBssSInSnOEbnPBLFMQPfkhABhKvBzF2yZsbDt8bSAg=",
-        "ref": "refs/heads/main",
-        "rev": "80e6b366cd865e80afa112ae10468cf45e769ed7",
+        "lastModified": 1793189696,
+        "narHash": "sha256-k90LHczF0L2jVP/URxfP177Dlr0yqbv0Vv83tkcjqeU=",
+        "ref": "refs/tags/v5.23.0",
+        "rev": "16bc7afd05edaed19d07e99a617469307089d00f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/elanthia-online/lich-5"
       },
       "original": {
-        "rev": "80e6b366cd865e80afa112ae10468cf45e769ed7",
+        "ref": "refs/tags/v5.23.0",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/elanthia-online/lich-5"
@@ -20,11 +20,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1791366222,
-        "narHash": "sha256-o0N4g6uSOIppU7CGToNvGlMf5vC+B6O6ukFHKY/TKOY=",
+        "lastModified": 1793225069,
+        "narHash": "sha256-sx1f99WGrDfJ83KKuQrqGPmot0rnDgmpLJDzpU2oHQQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "39ad350a0602fa0a58a544344e3e9187526ea45c",
+        "rev": "e62746b0b472753ef019baceab6f1e2e52014980",
         "type": "github"
       },
       "original": {

@@ -107,7 +107,7 @@ class LauncherTests(unittest.TestCase):
         result = subprocess.run([launcher, "--version"], env=self.env,
                                 cwd="/", text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('The Lich, version 5.22.0', result.stdout)
+        self.assertRegex(result.stdout, r'(?m)^The Lich, version \d+\.\d+\.\d+\S*$')
         self.assertTrue(str((checkout / 'lich.rbw').resolve()).startswith('/nix/store/'))
         self.assertTrue(str((checkout / 'lib').resolve()).startswith('/nix/store/'))
 

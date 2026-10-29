@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_BIN = Path(os.environ.get("LICHNIX_MAINTENANCE_BIN", str(ROOT / "bin")))
-SCRIPTS = ("check-runtime", "update-gems", "update-lich-dependencies", "sync-lich-checkout")
+SCRIPTS = ("update-lich-dependencies",)
 
 
 class MaintenanceTests(unittest.TestCase):
@@ -30,10 +30,6 @@ class MaintenanceTests(unittest.TestCase):
         (self.source / "Gemfile").chmod(0o444)
         (self.source / "Gemfile.lock").write_text("pinned upstream lockfile\n")
         (self.source / "Gemfile.lock").chmod(0o444)
-        self.data_root = self.base / "data root"
-        self.checkout = self.data_root / "packaged/lich-5"
-        self.checkout.mkdir(parents=True)
-        (self.checkout / ".git").mkdir()
         self.log = self.base / "commands.jsonl"
         fake_bin = self.base / "tools"
         fake_bin.mkdir()
@@ -45,31 +41,19 @@ with open(os.environ["COMMAND_LOG"], "a") as log:
     log.write(json.dumps([name, args, os.getcwd()]) + "\\n")
 if name == "nix":
     if args[0] == "eval":
-        print(os.environ["PINNED_SOURCE"] if "outPath" in args[-1] else "pinned-revision")
+        print(os.environ["PINNED_SOURCE"])
     elif args[0] == "develop":
         sys.exit(subprocess.call(args[args.index("--command") + 1:]))
 elif name == "bundix" and os.environ.get("FAIL_BUNDIX"):
     sys.exit(23)
-elif name == "git":
-    if args[0] == "clone":
-        checkout = pathlib.Path(args[-1])
-        checkout.mkdir(exist_ok=True)
-        (checkout / ".git").mkdir()
-    elif args[2:4] == ["rev-parse", "--show-toplevel"]:
-        if not (pathlib.Path(args[1]) / ".git").is_dir():
-            sys.exit(128)
-        print(args[1])
-    elif args[2] == "diff" and os.environ.get("DIRTY_CHECKOUT"):
-        sys.exit(1)
 '''
-        for name in ("nix", "bundle", "bundix", "git"):
+        for name in ("nix", "bundix"):
             tool = fake_bin / name
             tool.write_text(mock)
             tool.chmod(0o755)
         self.env = dict(os.environ, HOME=str(self.base),
                         PATH=f"{fake_bin}:{os.environ['PATH']}",
-                        COMMAND_LOG=str(self.log), PINNED_SOURCE=str(self.source),
-                        LICHNIX_DATA_HOME=str(self.data_root))
+                        COMMAND_LOG=str(self.log), PINNED_SOURCE=str(self.source))
 
     def run_helper(self, name, *args):
         # Run from outside the repository to verify script-relative paths.
@@ -81,97 +65,44 @@ elif name == "git":
         return [json.loads(line) for line in self.log.read_text().splitlines()]
 
     def test_regenerate_uses_upstream_files_without_resolving_versions(self):
-        result = self.run_helper("update-gems")
+        result = self.run_helper("update-lich-dependencies")
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.commands()
         self.assertEqual([c[0] for c in calls],
-                         ["nix", "nix", "bundix", "nix", "nix", "nix"])
-        self.assertEqual(calls[2][1], [
+                         ["nix", "nix", "nix", "bundix", "nix", "nix", "nix"])
+        self.assertEqual(calls[0][1], ["flake", "update", "lich-src"])
+        self.assertEqual(calls[3][1], [
             f"--gemfile={self.source}/Gemfile",
             f"--lockfile={self.source}/Gemfile.lock",
             f"--gemset={self.repo}/nix/gems/gemset.nix",
         ])
-        self.assertEqual(calls[2][2], str(self.repo))
-        self.assertEqual(calls[4][1], ["build", "--no-link", ".#lich-development-gems"])
-        self.assertEqual(calls[5][1], ["flake", "check"])
+        self.assertTrue(all(c[2] == str(self.repo) for c in calls))
+        self.assertEqual(calls[4][1], ["build", ".#ruby-lich"])
+        self.assertEqual(calls[5][1], ["build", "--no-link", ".#lich-development-gems"])
+        self.assertEqual(calls[6][1], ["flake", "check"])
         self.assertFalse((self.repo / "nix/gems/Gemfile").exists())
         self.assertEqual((self.source / "Gemfile.lock").read_text(),
                          "pinned upstream lockfile\n")
 
     def test_targeted_updates_are_rejected_before_running_tools(self):
-        result = self.run_helper("update-gems", "sqlite3")
+        result = self.run_helper("update-lich-dependencies", "sqlite3")
         self.assertEqual(result.returncode, 2)
-        self.assertIn("pinned by upstream", result.stderr)
+        self.assertIn("edit the release tag", result.stderr)
         self.assertFalse(self.log.exists())
 
-    def test_release_updates_pin_then_regenerates_from_upstream_lock(self):
-        result = self.run_helper("update-lich-dependencies")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        calls = self.commands()
-        self.assertEqual(calls[0][1], ["flake", "update", "lich-src"])
-        self.assertEqual(next(c[1] for c in calls if c[0] == "bundix")[1],
-                         f"--lockfile={self.source}/Gemfile.lock")
-        self.assertFalse(any(c[0] in ("bundle", "git") for c in calls))
+    def test_help_does_not_run_tools(self):
+        for option in ("--help", "-h"):
+            result = self.run_helper("update-lich-dependencies", option)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Usage:", result.stdout)
+            self.assertFalse(self.log.exists())
 
     def test_failed_generation_stops_builds(self):
         self.env["FAIL_BUNDIX"] = "1"
-        result = self.run_helper("update-gems")
+        result = self.run_helper("update-lich-dependencies")
         self.assertEqual(result.returncode, 23)
-        self.assertEqual([c[0] for c in self.commands()], ["nix", "nix", "bundix"])
-
-    def test_sync_checkout_preserves_application_data(self):
-        self.env["LICHNIX_SRC_HOME"] = "/missing"
-        data = self.checkout / "credentials.fixture"
-        data.write_text("local application data")
-        result = self.run_helper("sync-lich-checkout")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        git_args = [c[1][2:] for c in self.commands() if c[0] == "git"]
-        self.assertEqual(git_args[-2:], [["fetch", "--tags"],
-                                        ["switch", "--detach", "pinned-revision"]])
-        self.assertEqual(data.read_text(), "local application data")
-
-    def test_dirty_checkout_stops_before_fetch_or_switch(self):
-        self.env["DIRTY_CHECKOUT"] = "1"
-        result = self.run_helper("sync-lich-checkout")
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("Commit or stash", result.stderr)
-        self.assertEqual([c[1][2] for c in self.commands()], ["rev-parse", "diff"])
-
-    def test_sync_uses_data_root_ignoring_writeable_source(self):
-        self.env["LICHNIX_WRITEABLE_SRC_HOME"] = "/missing/writeable"
-        self.env["LICHNIX_SRC_HOME"] = "/missing/obsolete"
-        result = self.run_helper("sync-lich-checkout")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.commands()[0][1][:2], ["-C", str(self.checkout)])
-
-    def test_sync_clones_missing_or_empty_destination(self):
-        for data_root in (self.base / "new parent", self.base / "empty root"):
-            destination = data_root / "packaged/lich-5"
-            with self.subTest(destination=destination):
-                if data_root.name == "empty root":
-                    destination.mkdir(parents=True)
-                self.log.write_text("")
-                # Relative paths are interpreted from the caller's working directory.
-                self.env["LICHNIX_DATA_HOME"] = str(data_root.relative_to(self.base))
-                result = self.run_helper("sync-lich-checkout")
-                self.assertEqual(result.returncode, 0, result.stderr)
-                calls = self.commands()
-                self.assertEqual(calls[0][1], ["clone", "--",
-                    "https://github.com/elanthia-online/lich-5.git", str(destination)])
-                self.assertEqual(calls[-1][1][2:], ["switch", "--detach", "pinned-revision"])
-                self.assertTrue((destination / ".git").is_dir())
-
-    def test_sync_refuses_nonempty_directory_without_repository(self):
-        self.env["LICHNIX_DATA_HOME"] = str(self.base / "existing data")
-        destination = self.base / "existing data/packaged/lich-5"
-        destination.mkdir(parents=True)
-        data = destination / "credentials.fixture"
-        data.write_text("keep this data")
-        result = self.run_helper("sync-lich-checkout")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(data.read_text(), "keep this data")
-        self.assertEqual(len(self.commands()), 1)
-        self.assertEqual(self.commands()[0][1][2], "rev-parse")
+        self.assertEqual([c[0] for c in self.commands()], ["nix", "nix", "nix", "bundix"])
+        self.assertNotIn("Review and commit", result.stdout)
 
 
 if __name__ == "__main__":
