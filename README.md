@@ -8,9 +8,12 @@ This project started as a mechanism for a macOS Nix user to easily get started
 using Lich, without contaminating their global environment or setting up ruby
 version managers.
 
-Targets Apple Silicon macOS (`aarch64-darwin`) with Ruby 4.0 and
-tested against Lich v5.22.0. GTK dependencies successfully build and Lich GUI
-runs and can be utilized by Saga.
+Targets:
+
+- Apple Silicon macOS (`aarch64-darwin`)
+- Ruby 4.0.9
+- Native GTK dependencies so script config GUIs can activate
+- Lich v5.23.0
 
 WARNING: Interfaces and overarching goals are still under revision.
 
@@ -20,17 +23,16 @@ To expose a `lich` executable that starts the lich server and a `ruby-lich`
 executable that exposes a ruby interpreter with native dependencies required by
 Lich, run:
 
+### From flake
+
+
 ```sh
 nix profile add github:shawnohare/lichnix#packaged
 # check versions
 lich --version && ruby-lich --version
 ```
-Next, in Saga enable connecting via Lich (in the Menu options) and set
 
-- Ruby executable to the absolute path of: `~/.nix-profile/bin/ruby-lich`
-- Lich directory to absolute path of: `~/.local/share/lichnix/runtime`
-
-### Quickstart from repo
+### From repo checkout
 
 If you want to build the launchers from a clone this repo, run:
 
@@ -41,7 +43,13 @@ nix build .#packaged
 nix profile add .#packaged
 ```
 
-Next, in Saga enable connecting via Lich (in the Menu options) and set
+### Saga Settings
+
+Saga is the official Simutronics client for GemStone IV and DragonRealms. It
+has native Lich integration that uses a ruby executable and path to
+the Lich entry poinnt script (`lich.rbw`).
+
+In Saga enable connecting via Lich (in the Menu options) and set
 
 - Ruby executable to the absolute path of: `~/.nix-profile/bin/ruby-lich` or
   `$PWD/result/bin/ruby-lich`
