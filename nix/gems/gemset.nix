@@ -661,10 +661,10 @@
     platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "0mncksh11dxpk8rf1js68rwj101lmarbm2nizfm0njfkbjbm2r62";
+      sha256 = "1b6lrnx7256134gkppy8zkf4h3gzqapxrk355aim68pjnvkqywx6";
       type = "gem";
     };
-    version = "0.6.13593";
+    version = "0.6.13602";
   };
   sqlite3 = {
     dependencies = ["mini_portile2"];
@@ -672,10 +672,10 @@
     platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "1x1zn43vs6g07ggpiv7h0qb89fyvs8kbsbadyhn8hrmpyn8jrrbs";
+      sha256 = "0r39asq48zjcvmh4lgac75zlxvyh9fgar25076gs9y476b6nispi";
       type = "gem";
     };
-    version = "2.10.1";
+    version = "2.10.2";
   };
   stringio = {
     groups = ["default"];

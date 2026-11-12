@@ -13,7 +13,7 @@ Targets:
 - Apple Silicon macOS (`aarch64-darwin`)
 - Ruby 4.0.9
 - Native GTK dependencies so script config GUIs can activate
-- Lich v5.23.0
+- Lich v5.24.1
 
 WARNING: Interfaces and overarching goals are still under revision.
 
@@ -310,9 +310,9 @@ still need manual end-to-end verification.
 Run this helper from any directory. The script contains detailed comments
 describing its commands and the files it changes.
 
-- [`bin/update-lich-dependencies`](bin/update-lich-dependencies) handles a Lich
-  release bump. First edit the revision in `inputs.lich-src.url` in `flake.nix`, then
-  run this helper. It updates the Lich input lock, regenerates `gemset.nix`
+1. Update the version of Lich in `flake.nix`.
+2. [`bin/update-lich-dependencies`](bin/update-lich-dependencies) handles a Lich
+  release bump. It updates the Lich input lock, regenerates `gemset.nix`
   from the pinned upstream Gemfile and Gemfile.lock, builds the launcher and
   development gems, and runs all flake checks. Gem versions follow upstream's
   lockfile; individual gem names are not accepted.
