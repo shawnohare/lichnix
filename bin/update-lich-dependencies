@@ -29,9 +29,10 @@ nix develop .#gem-tools --command bundix \
   --lockfile="$lich_source/Gemfile.lock" \
   --gemset="$PROJECT_ROOT/nix/gems/gemset.nix"
 
-# Build the launcher, keeping result available for Saga. Verify development
+# Build both launchers, keeping result available for Saga. Packaged includes
+# ruby-lich, so a separate ruby-lich build is unnecessary. Verify development
 # gems without replacing result or creating a second result symlink.
-nix build .#ruby-lich
+nix build .#packaged
 nix build --no-link .#lich-development-gems
 # Verify upstream gemset consistency and launcher behavior, including native
 # gems with an empty home and stale Bundler settings.

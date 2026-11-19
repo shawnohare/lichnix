@@ -3,16 +3,16 @@
     "lich-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1794293172,
-        "narHash": "sha256-iKB9M0lrbBpAVXNbJuNWgaawqEQgsG04hauBCYk9XVA=",
-        "ref": "refs/tags/v5.24.1",
-        "rev": "2ae1a07e130c01b1d7161885d2935c61ab1694d6",
+        "lastModified": 1795029877,
+        "narHash": "sha256-qVhH+ivNQkXIAKAXTZ+9yDp4n7ezbM5irMfxUnq0t40=",
+        "ref": "refs/tags/v5.25.0",
+        "rev": "b3678bc2b1252f4c13c2926142b8201534bb41d5",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/elanthia-online/lich-5"
       },
       "original": {
-        "ref": "refs/tags/v5.24.1",
+        "ref": "refs/tags/v5.25.0",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/elanthia-online/lich-5"
