@@ -68,18 +68,32 @@ elif name == "bundix" and os.environ.get("FAIL_BUNDIX"):
         result = self.run_helper("update-lich-dependencies")
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.commands()
-        self.assertEqual([c[0] for c in calls],
-                         ["nix", "nix", "nix", "bundix", "nix", "nix", "nix"])
-        self.assertEqual(calls[0][1], ["flake", "update", "lich-src"])
-        self.assertEqual(calls[3][1], [
+        # Check meaningful workflow boundaries rather than the number of tool
+        # invocations, so extra probes or verification builds are harmless.
+        update = next(i for i, c in enumerate(calls)
+                      if c[:2] == ["nix", ["flake", "update", "lich-src"]])
+        generation = next(i for i, c in enumerate(calls) if c[0] == "bundix")
+        self.assertLess(update, generation)
+        self.assertEqual(calls[generation][1], [
             f"--gemfile={self.source}/Gemfile",
             f"--lockfile={self.source}/Gemfile.lock",
             f"--gemset={self.repo}/nix/gems/gemset.nix",
         ])
         self.assertTrue(all(c[2] == str(self.repo) for c in calls))
-        self.assertEqual(calls[4][1], ["build", ".#ruby-lich"])
-        self.assertEqual(calls[5][1], ["build", "--no-link", ".#lich-development-gems"])
-        self.assertEqual(calls[6][1], ["flake", "check"])
+        builds = [(i, c[1]) for i, c in enumerate(calls)
+                  if c[0] == "nix" and c[1][0] == "build"]
+        self.assertTrue(builds)
+        self.assertTrue(all(generation < i for i, args in builds))
+        self.assertTrue(any(".#lich-development-gems" in args and "--no-link" in args
+                            for i, args in builds))
+        # Saga needs result to retain both lich and ruby-lich. Later verification
+        # builds must not replace it with a package containing only gems.
+        linked_builds = [args for i, args in builds if "--no-link" not in args]
+        self.assertTrue(linked_builds)
+        self.assertEqual(linked_builds[-1], ["build", ".#packaged"])
+        check = next(i for i, c in enumerate(calls)
+                     if c[:2] == ["nix", ["flake", "check"]])
+        self.assertTrue(all(i < check for i, args in builds))
         self.assertFalse((self.repo / "nix/gems/Gemfile").exists())
         self.assertEqual((self.source / "Gemfile.lock").read_text(),
                          "pinned upstream lockfile\n")
@@ -101,7 +115,11 @@ elif name == "bundix" and os.environ.get("FAIL_BUNDIX"):
         self.env["FAIL_BUNDIX"] = "1"
         result = self.run_helper("update-lich-dependencies")
         self.assertEqual(result.returncode, 23)
-        self.assertEqual([c[0] for c in self.commands()], ["nix", "nix", "nix", "bundix"])
+        calls = self.commands()
+        self.assertTrue(any(c[0] == "bundix" for c in calls))
+        self.assertFalse(any(c[0] == "nix" and
+                             (c[1][0] == "build" or c[1][:2] == ["flake", "check"])
+                             for c in calls))
         self.assertNotIn("Review and commit", result.stdout)
 
 

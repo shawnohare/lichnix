@@ -13,7 +13,7 @@ Targets:
 - Apple Silicon macOS (`aarch64-darwin`)
 - Ruby 4.0.9
 - Native GTK dependencies so script config GUIs can activate
-- Lich v5.24.1
+- Lich v5.25.0
 
 WARNING: Interfaces and overarching goals are still under revision.
 
@@ -313,11 +313,15 @@ describing its commands and the files it changes.
 1. Update the version of Lich in `flake.nix`.
 2. [`bin/update-lich-dependencies`](bin/update-lich-dependencies) handles a Lich
   release bump. It updates the Lich input lock, regenerates `gemset.nix`
-  from the pinned upstream Gemfile and Gemfile.lock, builds the launcher and
+  from the pinned upstream Gemfile and Gemfile.lock, builds the packaged launchers and
   development gems, and runs all flake checks. Gem versions follow upstream's
   lockfile; individual gem names are not accepted.
 
-To verify the runtime without updating dependencies, run `nix build .#ruby-lich`,
+The helper leaves `result` pointing to `.#packaged`, which contains both `lich`
+and `ruby-lich` for Saga. Development-gem verification does not replace that link.
+If Saga uses a Nix profile instead of `result`, upgrade that profile separately.
+
+To verify the runtime without updating dependencies, run `nix build .#packaged`,
 `nix build --no-link .#lich-development-gems`, and `nix flake check` from the repository.
 
 The Gemfile and Gemfile.lock come directly from the pinned Lich source in the
